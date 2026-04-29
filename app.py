@@ -2,10 +2,13 @@ import streamlit as st
 import os
 from dotenv import load_dotenv
 
+# LangChain imports
 from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 
-# Load API
+# -------- LOAD ENV --------
 load_dotenv()
 api_key = os.getenv("GROQ_API_KEY")
 
@@ -13,12 +16,22 @@ if not api_key:
     st.error("Missing GROQ_API_KEY")
     st.stop()
 
-# LLM
+# -------- LLM --------
 llm = ChatGroq(
     model="llama-3.3-70b-versatile",
     api_key=api_key
 )
 
+# -------- PROMPT TEMPLATE --------
+prompt_template = ChatPromptTemplate.from_messages([
+    ("system", "You are a helpful AI assistant. Give clear and concise answers."),
+    ("user", "{question}")
+])
+
+# -------- CHAIN --------
+chain = prompt_template | llm | StrOutputParser()
+
+# -------- PAGE CONFIG --------
 st.set_page_config(page_title="AI Chatbot", layout="wide")
 
 # -------- SESSION --------
@@ -54,7 +67,6 @@ st.markdown("""
     max-width: 900px;
     margin: auto;
 }
-
 .user-msg {
     background-color: #2563eb;
     color: white;
@@ -64,7 +76,6 @@ st.markdown("""
     max-width: 70%;
     margin-left: auto;
 }
-
 .bot-msg {
     background-color: #1f2937;
     color: white;
@@ -95,22 +106,23 @@ if user_input:
 
     # Create new chat if none exists
     if st.session_state.current_chat is None:
-        # Title = first message (shortened)
         title = user_input[:40] + ("..." if len(user_input) > 40 else "")
         st.session_state.current_chat = title
         st.session_state.chats[title] = []
 
-    # Add user message
+    # Save user message
     st.session_state.chats[st.session_state.current_chat].append(
         HumanMessage(content=user_input)
     )
 
     try:
-        response = llm.invoke(st.session_state.chats[st.session_state.current_chat])
+        # 🔥 Use chain instead of raw LLM
+        response = chain.invoke({"question": user_input})
 
         st.session_state.chats[st.session_state.current_chat].append(
-            AIMessage(content=response.content)
+            AIMessage(content=response)
         )
+
     except Exception as e:
         st.error(str(e))
 
