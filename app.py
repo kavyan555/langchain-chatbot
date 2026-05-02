@@ -34,6 +34,9 @@ chain = prompt_template | llm | StrOutputParser()
 # -------- PAGE CONFIG --------
 st.set_page_config(page_title="AI Chatbot", layout="wide")
 
+st.title("🤖 AI Chatbot")
+st.caption("Your AI assistant powered by Groq + LLaMA 3.3")
+
 # -------- SESSION --------
 if "chats" not in st.session_state:
     st.session_state.chats = {}
